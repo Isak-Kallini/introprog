@@ -3,7 +3,109 @@
 
 %%%
 
-\Subsection{Matchning}
+\Subsection{Typhierarkier i Scala}
+
+\begin{Slide}{Bastypen för alla typer: \texttt{Any}}
+\SlideFontSmall
+Scalas typsystem är \Alert{fullständigt}:
+\begin{itemize}\SlideFontSmall
+  \item Alla värden är objekt som har en typ.
+  \item Alla typer är subtyper till bastypen \code{Any}.
+  \item Typen \code{Any} kallas därför \Emph{topptyp}.
+  \item Alla objekt har vissa grundläggande metoder, så som \code{toString} och \code{==}
+\begin{Code}
+abstract class Any:
+  def getClass
+  def isInstanceOf
+  def asInstanceOf
+  def ==
+  def !=
+  def ##
+  def equals
+  def hashCode
+  def toString
+
+trait Matchable extends Any
+\end{Code}
+\end{itemize}
+
+Det kommer mer om abstrakta klasser och traits i veckan om arv.
+\end{Slide}
+
+\begin{Slide}{Alla typer är subtyper till \texttt{Any}}\SlideFontSmall\ifkompendium\footnotesize\fi
+\vspace{-0.0em}\begin{center}
+\newcommand{\TextBox}[1]{\raisebox{0pt}[1em][0.5em]{#1}}
+\tikzstyle{umlclass}=[rectangle, draw=black,  thick, anchor=north, text width=2cm, rectangle split, rectangle split parts = 3]
+\begin{tikzpicture}[inner sep=0.5em]
+\node [umlclass, rectangle split parts = 1, xshift=0cm] (Any)  {
+            \textit{\textbf{\centerline{\TextBox{\code{Any}}}}}
+        };
+
+\node [umlclass, rectangle split parts = 1, yshift=-1.5cm] (Matchable)  {
+            \textit{\textbf{\centerline{\TextBox{\code{Matchable}}}}}
+        };
+
+
+
+\node [umlclass, rectangle split parts = 1]  at (-2.5cm,-3.25cm) (SubType1) {
+            \textbf{\centerline{\TextBox{\code{AnyVal}}}}
+            % \nodepart[]{second} \TextBox{\code{val x: A}}
+        };
+
+\node [umlclass, rectangle split parts = 1] at (2.5cm,-3.25cm) (SubType2)  {
+            \textbf{\centerline{\TextBox{\code{AnyRef}}}}
+        };
+
+\draw[umlarrow] (Matchable.north) -- ++(0,0.5) -| (Any.south);
+\draw[umlarrow] (SubType1.north) -- ++(0,0.5) -| (Matchable.south);
+\draw[umlarrow] (SubType2.north) -- ++(0,0.5) -| (Matchable.south);
+\end{tikzpicture}
+\end{center}
+\begin{itemize}
+  \item Alla \Emph{värdetyper}, t.ex. \code{Int}, \code{Double}, \code{Boolean}, är subtyper till \code{AnyVal}
+  \item Alla \Emph{referenstyper} t.ex. \code{String} är subtyper till \code{AnyRef}
+  \item Värden av typen \code{Matchable} kan användas vid s.k mönstermatchning. 
+  \item (Det finns även s.k. opaka typer som inte kan mönstermatchas.)
+\end{itemize}
+\end{Slide}
+
+\begin{Slide}{Dina egna referenstyper är subtyper till \texttt{AnyRef}}\SlideFontSmall
+Alla typer du skapar är subtyper till \code{AnyRef} utan att du behöver skriva det.
+\begin{Code}
+trait Grönsak:                                 // din egen bastyp
+  def vikt: Int
+
+case class Gurka(vikt: Int) extends Grönsak    // din egen subtyp
+case class Tomat(vikt: Int) extends Grönsak    // en annan subtyp
+\end{Code}
+\SlideFontSmall\ifkompendium\footnotesize\fi
+\vspace{-0.0em}\begin{center}
+\newcommand{\TextBox}[1]{\raisebox{0pt}[1em][0.5em]{#1}}
+\tikzstyle{umlclass}=[rectangle, draw=black,  thick, anchor=north, text width=2cm, rectangle split, rectangle split parts = 3]
+\begin{tikzpicture}[inner sep=0.5em]
+\node [umlclass, rectangle split parts = 1, yshift=-1.5cm] (Base)  {
+            \textit{\textbf{\centerline{\TextBox{\code{Grönsak}}}}}
+        };
+
+
+
+\node [umlclass, rectangle split parts = 1]  at (-2.5cm,-3.5cm) (SubType1) {
+            \textbf{\centerline{\TextBox{\code{Gurka}}}}
+            % \nodepart[]{second} \TextBox{\code{val x: A}}
+        };
+
+\node [umlclass, rectangle split parts = 1] at (2.5cm,-3.5cm) (SubType2)  {
+            \textbf{\centerline{\TextBox{\code{Tomat}}}}
+        };
+
+\draw[umlarrow] (SubType1.north) -- ++(0,0.5) -| (Base.south);
+\draw[umlarrow] (SubType2.north) -- ++(0,0.5) -| (Base.south);
+\end{tikzpicture}
+\end{center}
+Det kommer mer om typhierarkier och \code{extends} i veckan om arv.
+\end{Slide}
+
+\Subsection{Mönstermatchning}
 
 \ifkompendium
 \noindent  I ett match-uttryck kan man matcha på ett visst värde eller på en viss typ och match-uttryck används gärna istället för nästlade if-uttryck, då de ofta är lättare att läsa och begripa. Med match-uttryck kan man också göra \Emph{mönstermatchning} mot case-klass-instanser, t.ex. för att på ett smidigt sätt undersöka om attribut har speciella värden. Match-uttryck i Scala är en mer kraftfull variant av \code{switch}-satser som finns i många andra språk.  
@@ -38,7 +140,7 @@ val y: Int = 2
 \end{Slide}
 
 
-\begin{Slide}{Kolla om det passar med nästlade if-then-else-uttryck}
+\begin{Slide}{Kolla om det passar med nästlade if-uttryck}
 Ett vanligt problem: \\ att kolla vilket bland många värden som passar \\~\\
 
 Kan göras med nästlade if-then-else-uttryck:
@@ -76,8 +178,10 @@ val smak = g match
   case _ => "mindre gott..."
 \end{Code}
 \begin{itemize}
-\pause\item Varje \code{case}-gren testas var för sig i tur och ordning uppifrån och ned.
+\pause\item Varje \code{case}-gren testas var för sig i tur och ordning \Emph{uppifrån och ned}.
 \item Det som står mellan \code{case} och \code{=>} kallas ett \Emph{mönster} \Eng{pattern}
+\item Om ett mönster kan matchas så görs det som står efter \code{=>} 
+\item \Alert{Inga grenar testas efter lyckad match}.  
 \item Sista default-grenen ovan kallas \Emph{wildcard-mönster}: \code{case _ => }
 \item Ovan är exempel på matchning mot \Emph{konstant-mönster}, \\ i detta fallet tre stycken strängkonstantmönster.
 \item Det finns många andra sätt att skriva mönster.
@@ -112,7 +216,7 @@ val smak = g match
   case other => "smakar bakvänt: " + other.reverse
 \end{Code}
 
-Ett enkelt variabelmönster, så som \\ \code{case other => ...} \\ i exemplet ovan, matchar \Emph{allt}! \\\code{other} får alltså värdet av \code{g} om \code{g} \Alert{inte} är \code{"gurka"}, \code{"tomat"}, \code{"broccoli"}.
+Ett \Alert{enkelt} \Emph{variabelmönster}, så som \\ \code{case other => ...} \\ i exemplet ovan, matchar \Alert{allt}! \\\code{other} får alltså värdet av \code{g} om \code{g} \Alert{inte} är \code{"gurka"}, \code{"tomat"}, \code{"broccoli"}.
 
 \end{Slide}
 
@@ -150,16 +254,16 @@ Med en typannotering efter en variabel får man ett \Emph{typat mönster} \Eng{t
 \begin{Code}
 def f = 
   if math.random() < 0.5 then 42 + math.random() 
-  else "gurka" + math.random()
+  else s"gurka ${math.random()}"
 
-def g = f match 
+val i = f match 
   case x: Double => x.round.toInt
   case s: String => s.length
 \end{Code}
-\code{f} får typen \code{Matchable} som är subtyp till \code{Any}. Vilken typ får \code{g}? \pause ~~\code{Int}
+\code{f} får typen \code{Matchable} som är subtyp till \code{Any}. Vilken typ får \code{i}? \pause ~~\code{Int}
 {\SlideFontTiny \\\vspace{0.5em} Matchning mot specifika typer enl. ovan används i idiomatisk Scala hellre än \code{isInstanceOf} och \code{asInstanceOf} men man kan göra motsvarande ovan så här:
 \begin{Code}
-def g2 =  
+val i2: Int =  
   val x = f
   if x.isInstanceOf[Double] then x.asInstanceOf[Double].round.toInt
   else if x.isInstanceOf[String] then x.asInstanceOf[String].length
@@ -169,12 +273,21 @@ def g2 =
 \end{Slide}
 
 \begin{Slide}{Typen \text{Matchable}}
-När ett uttryck inte kan ges en mer specifik typ så härleds \code{Matchable}, vilket visar att värdet kan undersökas med \code{match}.\footnote{Mer detaljer om varför \code{Matchable} behövs här: https://dotty.epfl.ch/docs/reference/other-new-features/matchable.html}
-\begin{REPLnonum}
+\begin{itemize}\SlideFontSmall
+\item
+När ett uttryck inte kan ges en mer specifik typ så härleds \code{Matchable}, vilket visar att värdet kan undersökas med \code{match}.
+\item Exempel: För de orelaterade typerna \code{String} och \code{Double} är den mest specifika typen som kan härledas \code{Matchable}.
+
+\begin{REPLsmall}
 scala> def f = if math.random() > 0.5 then 42 else "hej"
 def f: Matchable
-\end{REPLnonum}
-%Eftersom typen \code{String} och typen \code{Double} inte har något annat gemensamt bli den mest specifika typen som kan härledas \code{Matchable}, som är nästan lika generell som topptypen \code{Any}.
+\end{REPLsmall}
+
+\item Typen \code{Matchable} är nästan lika generell som topptypen \code{Any}. 
+\item \code{Matchable} infördes i Scala 3 med \Emph{opaka typalias} som garanterat aldrig boxas men inte kan mönstermatchas. (Ingår ej i denna kurs.)
+\item Fördjupning om \code{Matchable} och \code{opaque type} i Scala 3 finns här:
+\\\url{https://dotty.epfl.ch/docs/reference/other-new-features}
+\end{itemize}
 \end{Slide}
 
 \begin{Slide}{Konstruktormönster med case-klasser}\SlideFontSmall
@@ -194,7 +307,7 @@ def testa(g: Grönsak): String = g match
   case Gurka(v, false) => "gott, väger " + v
   case Gurka(_, true)  => "inte gott"
   case Tomat(v, r)     => (if r then "inte " else "") + s"gott, väger $v"
-  case _ => "okänd grönsak: $g"
+  case _ => s"okänd grönsak: $g"
 \end{Code}
 
 Konstruktormönster ''\Emph{plockar isär}'' det som matchas och binder variabler till de attribut som finns i case-klassens konstruktor.
@@ -202,16 +315,19 @@ Konstruktormönster ''\Emph{plockar isär}'' det som matchas och binder variable
 
 
 \begin{Slide}{Plocka isär samlingar med djupa mönster}
-Man kan plocka isär innehållet i en samling så här:
+\begin{itemize}
+  \item Man kan plocka isär innehållet i en samling så här:
 \begin{Code}
 def visa(xs: Vector[Grönsak]): String = xs match
   case Vector()               => "tom grönsaksvektor"
   case Vector(Gurka(v, true)) => s"en rutten gurka som väger $v"
   case Vector(g)              => s"exakt en grönsak: $g"
   case Vector(g1, g2)         => s"exakt två grönsaker: $g1, $g2"
-  case g +: gs                => s"först en $g och sedan svansen: $gs"
+  case Vector(g, gs*)         => s"först en $g och sedan svansen: $gs"
 \end{Code}
-Vad händer om du byter ordning på andra och tredje mönstret?
+\item Vad händer om du byter ordning på 2:a och 3:e mönstret?
+\item \code{Vector(g, gs*)} kan också skrivas som \code{g +: gs}
+\end{itemize}
 \end{Slide}
 
 \begin{Slide}{Matchning på tupler}
@@ -383,32 +499,52 @@ val y: Int = 1
 val z: Int = 2
 
 \end{REPL}
-Mönster i \Emph{for-satser}:
+Mönster i \Emph{for-uttryck}:
 \vspace{-0.25em}\begin{REPL}
 scala> val xs = for (x, y) <- Vector((1,2), (3,4)) yield x
 val xs: Vector[Int] = Vector(1, 3)
 \end{REPL}
 \end{Slide}
 
-\begin{Slide}{Fördjupning om mönster}\SlideFontSmall
+\begin{Slide}{Mönsterdelar och variabelt antal argument}\SlideFontSmall
+Met två olika specialtecken går det att
 \begin{itemize}
-\item binda variabler till mönsterdelar med \code{@} \\
+\item binda variabler till \Emph{mönsterdelar} med \code{@} \\
 \code{case Vector(xs@Vector(a), Vector(42)) => ...}
 
-\item sekvensmönster med \code{_}, \code{xs*} och \code{_*} 
+\item matcha \Emph{variabelt antal argument}  med \code{*}  
 \\ \code{case Vector(a, _, c) => ... }  matchar om 3 element, \_ kvittar
 \\ \code{case Vector(a, svans*) => ... }  matchar om minst ett element
 \\ \code{case Vector(a, _*) => ... }  intresserad av första, svans kvittar
+\end{itemize}
+%Läs mer om mönster här: \url{https://docs.scala-lang.org/scala3/book/taste-control-structures.html#match-expressions}
+\end{Slide}
 
-\item Partiella funktioner med \code{case} utan \code{match}:\\ \code|val pf: Int => Double = { case z if z != 0 => 1.0 / z }| \\ Notera att klammerparenteserna behövs för att skapa partiell funktion med \code{case} utan \code{match}. Funktionen är inte definierad för argumentet \code{0}:
+
+\begin{Slide}{Partiella funktioner och metoden \texttt{collect}}\SlideFontSmall
+\begin{itemize}
+\item En \Alert{partiell} \Emph{funktion} är, till skillnad från en \Alert{total} \Emph{funktion}, inte definierad för alla parametervärden.
+\item Partiella funktioner kan skapas med \code{case} utan \code{match}:
+\begin{Code}
+val pf: PartialFunction[Int, Double] = case z if z != 0 => 1.0 / z  
+\end{Code}
+\item  Funktionen är inte definierad för argumentet \code{0}:
 
 \begin{REPLsmall}
 scala> pf(0)                         
 scala.MatchError: 0 
 \end{REPLsmall}
-Detta är användbart t.ex. vid iterering över samling med \code{collect}: \\\code|xs.collect{ case (a,b) if a > 0 => a }|  
-\item Läs mer om mönster här: \\\url{https://docs.scala-lang.org/scala3/book/control-structures.html}
+\item 
+Detta är användbart tillsammans med samlingsmetoden \code{collect} som  applicerar en partiell funktion endast på definierade värden: 
+\begin{REPLsmall}
+scala> Vector(1, 2, 0, 4).collect(pf)
+val res0: Vector[Double] = Vector(1.0, 0.5, 0.25)
 
+scala> Vector(1 -> 2, 0 -> 3, 42 -> 0).collect{ case (a,b) if a > 0 => a } 
+val res1: Vector[Int] = Vector(1, 42)
+
+\end{REPLsmall}
+Notera att \Alert{krullparentes behövs} vid ensamt \code{case} som argument.
 % \item Läs mer om mönster här:  \href{http://www.artima.com/pins1ed/case-classes-and-pattern-matching.html}{\SlideFontTiny www.artima.com/pins1ed/case-classes-and-pattern-matching.html}
 
 % \item För djupare förståelse av hur \code{case} fungerar, läs speciellt om \Emph{partiella funktioner} här: \href{http://www.artima.com/pins1ed/case-classes-and-pattern-matching.html\#15.7}{\SlideFontTiny www.artima.com/pins1ed/case-classes-and-pattern-matching.html\#15.7}
