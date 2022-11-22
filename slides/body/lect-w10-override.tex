@@ -154,6 +154,71 @@ res1: String = super pepino
 
 
 
+
+
+\begin{Slide}{Fördjupning: Intersektionstyp}\SlideFontSmall
+Vid inmixning blir supertypen en intersektionstyp \Eng{intersection type}, vilket indikeras med typoperatorn \code{&} i exempel nedan:
+\begin{Code}
+trait Grönsak(val vikt: Int)
+trait HarSmak(val smak: String)
+
+object Gurka extends Grönsak(42), HarSmak("vattning")
+object Tomat extends Grönsak(43), HarSmak("syrlig")
+\end{Code} 
+\begin{REPLnonum}
+scala> Vector(Gurka, Tomat)
+val res0: Vector[Grönsak & HarSmak] = 
+  Vector(Gurka@560742f7, Tomat@3cc82e23)
+\end{REPLnonum}
+Det går att skapa egna intersektionstyper med \code{with}:
+\begin{REPLsmall}
+scala> class X { val x = 42 }
+scala> trait Y { val y = "hej" }
+scala> val a: X & Y = new X         // -- Error: Found: X Required: X & Y
+scala> val b: X & Y = new X with Y  // Funkar! En anonym klass av typen X & Y
+\end{REPLsmall}
+\end{Slide}
+
+
+\begin{Slide}{Fördjupning: Typunioner med eller-operator}\SlideFontSmall
+En mycket enkel summa-typ kan skapas med typ-operatorn \code{|} 
+\begin{REPLsmall}
+scala> var x: Int | String = 42
+var x: Int | String = 42
+
+scala> x = "hej" 
+x: Int | String = hej
+
+scala> type IntOrErr = Int | String
+// defined alias type IntOrErr = Int | String
+
+scala> def div(nom: Int, denom: Int): IntOrErr = 
+         if denom != 0 then nom / denom else "div. by zero"
+\end{REPLsmall}
+Fördel jämfört med klass: rudimentärt enkelt.\\ Nackdelar: kan inte deklarera parametrar, medelemmar och allt annat som en klass kan; i viss mån kan detta kompensera med \code{extension} och \code{match}.\\ 
+{\SlideFontTiny Läs mer här:
+\url{https://dotty.epfl.ch/docs/reference/new-types/union-types.html}
+}
+\end{Slide}
+
+\begin{Slide}{Fördjupning: Transparent trait}\SlideFontSmall
+Du kan göra din trait \Emph{genomskinlig} vid typhärledning av supertypen för inmixningen med nyckelordet \code{transparent}:
+\begin{Code}
+trait Grönsak(val vikt: Int)
+transparent trait HarSmak(val smak: String)
+
+object Gurka extends Grönsak(42), HarSmak("vattning")
+object Tomat extends Grönsak(43), HarSmak("syrlig")
+\end{Code} 
+\begin{REPLnonum}
+scala> Vector(Gurka, Tomat)
+val res0: Vector[Grönsak] = 
+  Vector(Gurka@560742f7, Tomat@3cc82e23)
+\end{REPLnonum}
+Vilken typ hade visats utan \code{transparent}? \pause \\ \code{Vector[Grönsak & HarSmak]}
+\end{Slide}
+
+
 \begin{Slide}{Terminologi och nyckelord vid arv}
 
 \SlideFontSize{7.5}{10}
@@ -190,32 +255,37 @@ res1: String = super pepino
 \end{Slide}
 
 
-
 \Subsection{Algebraiska datatyper}
 
-\begin{Slide}{Terminologi för datatyper}\SlideFontSmall
-\begin{itemize}
-\item Abstrakt datatyp \Eng{abstract data type}
-\begin{itemize}\SlideFontTiny
-\item Definieras av gränssnittet och beteendet -- implementationen är dold för användaren. 
-\item Fördelar: inkapsling, lokala ändringar, flexibilitet.
-\item Skapas i Scala t.ex. med klasser + privata medlemmar.
-\end{itemize} 
-\item Enumeration, ä.k. uppräkning \Eng{enumeration}
-\begin{itemize}\SlideFontTiny
-\item En speciellt enkel form av s.k. algebraisk datatyp som består av en uppräknad, ändlig sekvens av enkla värden som har en ordning.
-\item Skapas i Scala med 1) heltal, 2) \code{sealed trait} ... \code{case class} ... 3) \code{enum}
-\end{itemize} 
-\item Algebraisk datatyp \Eng{algebraic data type}, förk. ADT
-\begin{itemize}\SlideFontTiny
-\item En datatyp som är sammansatt av delar som kan kombineras. 
-\item Två olika algebraiska datatyper som kan kombineras med varandra:
-\begin{itemize}\SlideFontTiny
-\item \Alert{Och}-typ (ä.k. produkt, record, struct), exempel: \\ \code|case class Person(namn: String, ålder: Int)| \\består av attributen namn \Alert{OCH} ålder.
-\item \Emph{Eller}-typ (ä.k. summa, union), exempel: \code|enum Färg { case Röd, Svart}| \\kan vara antingen röd \Emph{ELLER} svart.
+\begin{Slide}{Vad är en algebraisk datatyp?}%\SlideFontSmall
+% \item Abstrakt datatyp \Eng{abstract data type}
+% \begin{itemize}\SlideFontTiny
+% \item Definieras av gränssnittet och beteendet -- implementationen är dold för användaren. 
+% \item Fördelar: inkapsling, lokala ändringar, flexibilitet.
+% \item Skapas i Scala t.ex. med klasser + privata medlemmar.
+% \end{itemize} 
+% \item Enumeration, ä.k. uppräkning \Eng{enumeration}
+% \begin{itemize}\SlideFontTiny
+% \item En speciellt enkel form av s.k. algebraisk datatyp som består av en uppräknad, ändlig sekvens av enkla värden som har en ordning.
+% \item Skapas i Scala med 1) heltal, 2) \code{sealed trait} ... \code{case class} ... 3) \code{enum}
+% \end{itemize} 
+Algebraisk datatyp \Eng{algebraic data type}, förk. ADT:
+\begin{itemize}%\SlideFontTiny
+\item En datatyp som består av (en kombination av): 
+\item \Emph{Produkt}-typer, \Alert{Summa}-typer:
+\begin{itemize}%\SlideFontTiny
+\item En produkt-typ är en ''och''-typ (ä.k. record, struct), exempel: \\ \code|case class Person(namn: String, ålder: Int)| \\består av attributen namn \Alert{OCH} ålder.
+\item En summa-typ  är en 'Eller''-typ (ä.k. disjunkt union, co-produkt).
+\item Exempel: \code|enum Färg { case Röd, Svart}| \\Färg kan vara antingen Röd \Emph{ELLER} Svart.
+\item[] En \code{Grönsak} är antingen en \code{Gurka} \Emph{ELLER} en \code{Tomat}
+\begin{Code}
+sealed trait Grönsak { val vikt: Int }
+case class Gurka(vikt: Int) extends Grönsak
+case class Tomat(vikt: Int) extends Grönsak
+\end{Code}
 \end{itemize}  
 \end{itemize} 
-\end{itemize}
+{\vspace{0.5em}\SlideFontTiny \url{https://en.wikipedia.org/wiki/Algebraic_data_type}}
 \end{Slide}
 
 \begin{Slide}{En case-klass är en produkt.}
@@ -254,19 +324,19 @@ object PersonId:
   case class Number(n: Long) extends PersonId  // produkt med ett element
   case object Missing extends PersonId         // ett enkelt värde
 \end{Code}
-Motsvarande med \code{enum}:
+\pause Motsvarande med \code{enum}:
 \begin{Code}
 enum PersonId:
   case Number(n: Long)
   case Missing     
 \end{Code}
-\begin{REPLsmall}
-scala> Vector.tabulate(10)(i => 
-         if i % 3 == 0 then PersonId.Missing else PersonNumber(i)
-       )
-val res0: Vector[Object] = Vector(Missing, PersonNumber(1), PersonNumber(2), Missing, 
-  PersonNumber(4), PersonNumber(5), Missing, PersonNumber(7), PersonNumber(8), Missing)
-\end{REPLsmall}
+% \begin{REPLsmall}
+% scala> Vector.tabulate(10)(i => 
+%          if i % 3 == 0 then PersonId.Missing else PersonNumber(i)
+%        )
+% val res0: Vector[Object] = Vector(Missing, PersonNumber(1), PersonNumber(2), Missing, 
+%   PersonNumber(4), PersonNumber(5), Missing, PersonNumber(7), PersonNumber(8), Missing)
+% \end{REPLsmall}
 
 \end{Slide}
 
@@ -292,23 +362,3 @@ extension [A](k: Kanske[A]) def getOrElse(default: A):A = k match
 \end{Code}     
 \end{Slide}
 
-\begin{Slide}{Fördjupning: Typunioner med eller-operator}\SlideFontSmall
-En mycket enkel summa-typ kan skapas med typ-operatorn \code{|} 
-\begin{REPLsmall}
-scala> var x: Int | String = 42
-var x: Int | String = 42
-
-scala> x = "hej" 
-x: Int | String = hej
-
-scala> type IntOrErr = Int | String
-// defined alias type IntOrErr = Int | String
-
-scala> def div(nom: Int, denom: Int): IntOrErr = 
-         if denom != 0 then nom / denom else "div. by zero"
-\end{REPLsmall}
-Fördel jämfört med klass: rudimentärt enkelt.\\ Nackdelar: kan inte deklarera parametrar, medelemmar och allt annat som en klass kan; i viss mån kan detta kompensera med \code{extension} och \code{match}.\\ 
-{\SlideFontTiny Läs mer här:
-\url{https://dotty.epfl.ch/docs/reference/new-types/union-types.html}
-}
-\end{Slide}

@@ -4,7 +4,7 @@
 %%%
 
 
-\Subsection{Generiska strukturer}
+\Subsection{Fördjupning: mer om generiska strukturer}
 
 \begin{Slide}{Repetition: Typparametrar och generiska strukturer}
 \begin{itemize}\SlideFontSmall
@@ -32,13 +32,11 @@ val res0: Pair[Int, String] = Pair(42,hej)
 \end{Slide}
 
 
-\Subsection{Att sätta gränser för typer}
-
 \begin{Slide}{Olika sätt att begränsa typer}
 Det finns i Scala flera olika sätt att att begränsa vilka typer du vill tillåta. En översikt av några möjligheter:
 \begin{itemize}
-  \item Ge \Emph{övre} gräns för typparametrar \Eng{lower bound}
-  \item Ge \Emph{undre} gräns för typparametrar \Eng{upper bound}
+  \item Ge \Emph{övre} gräns för typparametrar \Eng{upper bound}
+  \item Ge \Emph{undre} gräns för typparametrar \Eng{lower bound}
   \item Ge en \Emph{kontextgräns} för typparametrar i relation till implicit givna typer \Eng{context bound}
   \item Begränsa möjlig inmixning vid deklaration av en trait med en explicit \Emph{egentyp} \Eng{self type} 
 \end{itemize}
@@ -96,7 +94,7 @@ scala> testLowerBound[Robothund](Robothund())
 \end{Slide}
 
 
-\Subsection{Flexibla generiska typer: varians}
+\Subsection{Varians: flexibla typparametrar}
 
 \ifkompendium\else
 \begin{SlideSimple}{Vad är varians?}
@@ -240,6 +238,7 @@ scala> case class Bur[+A](a: A):
   |          ^^^^
   |  covariant type A occurs in contravariant position in type A of parameter x
 \end{REPLsmall}
+\pause
 \item Här måste typen tillåtas variera ''uppåt'' med hjälp av en \Emph{undre gräns}:
 \begin{Code}
 case class Bur[+A](a: A): 
@@ -255,8 +254,8 @@ val res1: Bur[Djur] = Bur(Hund())
 \begin{Slide}{När använda vilken slags varians?}
 \begin{itemize}\SlideFontTiny
 \item Oföränderliga generiska klasser som har metoder som är \Emph{producenter} av nya oföränderliga generiska typer passar ofta bäst som \Emph{kovarianta}, t.ex. \code{Vector[+T]}, \code{Option[+T]} . 
-\item En typkonstruktor av \code{T}, som har metoder som är \Alert{konsumenter} av \code{T}, kan vara flexibel i \code{T} om den är \Emph{kontravariant}, t.ex. \code{Veterinär[-T]}. Den kan också vara kovariant om konsumerande metoder vidgar inparametertypen till \code{B} där \code{B >: T}
-\item En typkonstruktor med flera parametrar kan vara \Emph{både} kontravariant \Emph{och} kovariant, t.ex. \code{Function1[-A, +B]} \\-- detta är den egentliga typen bakom ''syntaktiska sockret'' \code{A => B}\\
+\item En typkonstruktor av \code{T}, som har metoder som är \Alert{konsumenter} av \code{T}, kan vara \Emph{kontravariant}, t.ex. \code{Veterinär[-T]}. \\Den kan också vara \Emph{kovariant} om konsumerande metoder \Alert{vidgar} inparametertypen till \code{B} där \code{B >: T}
+\item En typkonstruktor med flera parametrar kan vara \Emph{både} kontravariant \Emph{och} kovariant, t.ex. \code{Function1[-A, +B]} \\-- detta är den egentliga typen av det ''syntaktiska sockret'' \code{A => B}\\
 (ett parametervärde\code{:A} \emph{konsumeras} och ett returtvärde\code{:B} \emph{produceras})
 \item \Alert{Förändringsbara} strukturer måste vara \Emph{invarianta}, annars väntar \Alert{kaos}!\\
 \pause Antag att det finns en \code{Bur} som kan ändras på plats via metoden \code{bytTill} \emph{och samtidigt} vore kovariant (varning för känsliga kodare): 
@@ -265,7 +264,7 @@ ejscala> val kattBur: Bur[Katt] = Bur(Katt())
 
 ejscala> val djurBur: Bur[Djur] = kattBur  // en kovariant referens till samma Bur
 
-ejscala> djurBur.bytTill(Hund())           // en djurbur kan innehålla hundar
+ejscala> djurBur.bytTill(Hund())           // ändra på plats
 
 ejscala> val katt: Katt = kattBur.släppUt  // KAOS! typosäkert hundkatt-monster :(
 \end{REPLsmall}
@@ -433,9 +432,9 @@ Det går också att ge det givna värdet ett namn vid behov, men ofta onödigt:\
 \code{given blabla: Int = 42}
 \end{Slide}
 
-\begin{Slide}{Kan vi inte använda default-argument som förändras?}
+\begin{Slide}{Går det lika bra att ha en variabel som default-värde?}
 \begin{itemize}\SlideFontSmall
-\item Vi skulle kunna använda ett default-värde som är ett namn på en variabel;
+\item Ett försök att skapa ett kontextberoende default-värde med en variabel:
 \begin{REPLsmall}
 scala> var ctx = 42
 var ctx: Int = 42
@@ -451,9 +450,13 @@ scala> ctx = 0
 scala> f()                                                                      
 val res1: Int = 1
 \end{REPLsmall} 
-\item Men här utgörs kontexten av referensen till ett föränderligt värde vid \Alert{körtid} som måste synas i aktuell namnrymd och \emph{inte} som för givna värden där det som fylls i baseras på \emph{typen} vid \Emph{kompileringstid} i en speciell \Emph{implicit namnrymd} \Eng{implicit scope}.
+\item Här utgörs ''kontexten'' av referensen till ett föränderligt värde vid \Alert{körtid} som måste synas i \Emph{aktuell} namnrymd. Funktionen är ej heller äkta \code{:(} 
+\item Denna lösning kan inte erbjuda flera kontextberoende default-värden, så att funktionen fungerar i många \Emph{olika} sammanhang.
+\item För givna värden med \code{given} så finns i stället en \Emph{implicit namnrymd} \Eng{implicit scope} med speciella synlighetsregler vid \code{using}.
 \end{itemize}
 \end{Slide}
+
+
 \begin{Slide}{Kontextuella abstraktioner med \texttt{given}, \texttt{using}}\SlideFontSmall
 \Emph{Kontextuell abstraktion} \Eng{contextual abstraction} i Scala:
 \begin{itemize}\SlideFontSmall
@@ -546,34 +549,36 @@ object Parser:             // olika implementationer erbjuds som givna värden
 \item Den specifika implementationen framkallas via en kontextuell parameter:
 \end{itemize}
 \begin{REPLsmall}
-scala> def parseOrElse[T](s: String)(using p: Parser[T]) = p.fromString(s)
+scala> def minAnvändningAvParser[T](s: String)(using p: Parser[T]) = p.fromString(s)
 
-scala> parseOrElse[Int]("12")
+scala> minAnvändningAvParser[Int]("12")
 val res0: Option[Int] = Some(12)
 \end{REPLsmall}
 \end{Slide}
 
 \begin{Slide}{Hur få typklassen \texttt{Parser} att funka för fler typer?}
 \begin{REPL}
-scala> parseOrElse[java.awt.Color]("Color(120,10,0)")
+scala> minAnvändningAvParser[java.awt.Color]("Color(120,10,0)")
 -- Error:
-1 |parseOrElse[java.awt.Color]("Color(120,10,0)")
+1 |minAnvändningAvParser[java.awt.Color]("Color(120,10,0)")
   |                                        ^
   | no implicit argument of type Parser[java.awt.Color] was found 
-  | for parameter p of method parseOrElse
+  | for parameter p of method minAnvändningAvParser
 \end{REPL}
 \begin{Code}
 given Parser[java.awt.Color] with
   def fromString(value: String): Option[java.awt.Color] =
-    val trimmed = value.trim.stripPrefix("Color(").stripSuffix(")")
-    trimmed.split(",").map(_.toIntOption) match
-      case Array(Some(r), Some(g), Some(b)) => Some(java.awt.Color(r, g, b))
-      case _ => None
+    if !value.startsWith("Color(") then None else 
+      val trimmed = value.trim.stripPrefix("Color(").stripSuffix(")")
+      trimmed.split(",").map(_.toIntOption) match
+        case Array(Some(r),Some(g),Some(b)) => Some(java.awt.Color(r, g, b))
+        case _ => None
 \end{Code}
-\begin{REPL}
-scala> parseOrElse[java.awt.Color]("Color(120,10,0)")
+\begin{REPLsmall}
+scala> minAnvändningAvParser[java.awt.Color]("Color(120,10,0)")
 val res1: Option[java.awt.Color] = Some(java.awt.Color[r=120,g=10,b=0])
-\end{REPL}
+\end{REPLsmall}
+\pause {\SlideFontSmall Detta ger \Emph{flexibilitet}: Jag kan ge givna värden för mina \Alert{egna} typer!}
 \end{Slide}
 
 
@@ -583,13 +588,13 @@ val res1: Option[java.awt.Color] = Some(java.awt.Color[r=120,g=10,b=0])
 \item Därför är det tillåtet att utelämna parameternamnet vid \code{using}. 
 \item Det givna värdet kan istället framkallas med \code{summon} vid behov:%
 \begin{Code}
-def parseOrElse[T](s: String)(using Parser[T]) = 
+def minAnvändningAvParser[T](s: String)(using Parser[T]) = 
   summon[Parser[T]].fromString(s)
 \end{Code}
 % \pause
 % \item Om du placerar en \code{apply} i typklassens kompanjonsobjekt som gör samma jobb som \code{summon} så kan du skriva detta ännu kortare:
 % \begin{CodeSmall}
-% def parseOrElse[T](s: String)(using Parser[T]) = Parser[T].fromString(s)
+% def minAnvändningAvParser[T](s: String)(using Parser[T]) = Parser[T].fromString(s)
 % \end{CodeSmall}
 % \item En sådan ''framkallnings-apply'' kan se ut så här:
 % \begin{CodeSmall}
@@ -604,11 +609,11 @@ def parseOrElse[T](s: String)(using Parser[T]) =
 \begin{Slide}{Kontextgräns}\SlideFontSmall
 Denna form av \code{using}-parametrar...
 \begin{Code}
-def parseOrElse[T](s: String)(using Parser[T]) = ???
+def minAnvändningAvParser[T](s: String)(using Parser[T]) = ???
 \end{Code}
 ...är så vanliga att Scala har ett kortare skrivsätt som kallas \Emph{kontextgräns}:
 \begin{Code}
-def parseOrElse[T: Parser](s: String) = ???
+def minAnvändningAvParser[T: Parser](s: String) = ???
 \end{Code}
 Om \code{F[A]} är en typkonstruktor och du skriver \code{[T: F]} så blir \code{F} en så kallad \Emph{kontextgräns} \Eng{context boundary}. 
 Kompilatorn expandera detta automatiskt till kontextparametern \code{(using F[T])}
@@ -620,21 +625,26 @@ Kompilatorn expandera detta automatiskt till kontextparametern \code{(using F[T]
 Kombinera kontextgräns med extensionsmetod och få smidig punktnotation.
 \begin{Code}
 extension [T: Parser](s: String) 
-  def parseOrElse(default: T): T = 
+  def minAnvändningAvParser(default: T): T = 
     summon[Parser[T]].fromString(s).getOrElse(default)
  
 \end{Code}
+\pause
 \begin{REPL}
-scala> "12".parseOrElse(42)
+scala> "12".minAnvändningAvParser(default = 42)
 val res2: Int = 12
 
-scala> "gurka".parseOrElse(42)
+scala> "gurka".minAnvändningAvParser(default = 42)
 val res3: Int = 42
 
-scala> "Color(100,100,0)".parseOrElse(java.awt.Color.black)
+scala> "Color(100,100,0)".minAnvändningAvParser(java.awt.Color.black)
 val res4: java.awt.Color = java.awt.Color[r=100,g=100,b=0]
 \end{REPL}
-Extensionsmetoder kan skrivas i efterhand på valfri plats och även göras tillgängliga med import.
+\begin{itemize}
+  \item Här behöver typparametern \code{T} ej anges explicit eftersom kompilatorn kan använda default-värdet för att härleda typen.
+  \item Extensionsmetoder kan skrivas i efterhand på valfri plats och även göras tillgängliga med import.
+
+\end{itemize}
 \end{Slide}
 
 
@@ -645,7 +655,7 @@ Extensionsmetoder kan skrivas i efterhand på valfri plats och även göras till
 %   def fromString(value: String): Option[T]
 
 %   extension (s: String) 
-%     def parseOrElse(default: T): T = fromString(s).getOrElse(default)
+%     def minAnvändningAvParser(default: T): T = fromString(s).getOrElse(default)
 
 % object Parser:
 %   given intParser: Parser[Int] with 

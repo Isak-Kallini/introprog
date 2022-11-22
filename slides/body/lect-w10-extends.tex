@@ -739,7 +739,7 @@ case class TalkingBot(name: String) extends Robot:
 \end{Code}
 \Emph{Polymorfism} betyder ''många former''. Referenserna r och bot nedan kan ha olika ''former'', d.v.s de kan referera till olika sorters robotar. \\ \Emph{Dynamisk bindning} innebär att körtidstypen avgör vilken metod som körs.
 \begin{REPL}[numbers=left, basicstyle=\color{white}\SlideFontSize{6.2}{7.5}\ttfamily\selectfont]
-scala> def robotDoWork(bot: Robot) = { print(bot); bot.work }
+scala> def robotDoWork(bot: Robot) = { print(bot); bot.work() }
 
 scala> var r: Robot = new CleaningBot("Wall-E")
 
@@ -779,30 +779,6 @@ scala> new {}
 val res0: Object = anon1@5bb37371
 \end{REPLsmall}
 \end{Slide}
-
-\begin{Slide}{Fördjupning: Intersektionstyp}\SlideFontSmall
-Vid inmixning blir supertypen en intersektionstyp \Eng{intersection type}, vilket indikeras med typoperatorn \code{&} i exempel nedan:
-\begin{Code}
-trait Grönsak(val vikt: Int)
-trait HarSmak(val smak: String)
-
-object Gurka extends Grönsak(42), HarSmak("vattning")
-object Tomat extends Grönsak(43), HarSmak("syrlig")
-\end{Code} 
-\begin{REPLnonum}
-scala> Vector(Gurka, Tomat)
-val res0: Vector[Grönsak & HarSmak] = 
-  Vector(Gurka@560742f7, Tomat@3cc82e23)
-\end{REPLnonum}
-Det går att skapa egna intersektionstyper med \code{with}:
-\begin{REPLsmall}
-scala> class X { val x = 42 }
-scala> trait Y { val y = "hej" }
-scala> val a: X & Y = new X         // -- Error: Found: X Required: X & Y
-scala> val b: X & Y = new X with Y  // Funkar! En anonym klass av typen X & Y
-\end{REPLsmall}
-\end{Slide}
-  
 
 
 \begin{Slide}{Hur förhindra subtypning?}
@@ -849,9 +825,9 @@ object Färg:
   case object Ruter   extends Färg(2)
   case object Klöver  extends Färg(3)
 \end{Code}
-Nyckelordet \code{sealed} förhindrar vidare subtypning av \code{Färg} och \Alert{ger varning} om matchning inte är fullständig, vilket är hjälper dig att inte orsaka körtidsfel.
+Nyckelordet \code{sealed} \Alert{förhindrar} vidare subtypning av \code{Färg} i \Emph{annan kodfil} och \Alert{ger varning} om matchning är ofullständig -- tips för att undvika körtidsfel.
 
-\begin{REPL}
+\begin{REPLsmall}
 scala> Färg.values(0) match { case Färg.Spader => "hej" }
 -- Warning:
 1 |Färg.values(0) match { case Färg.Spader => "hej" }
@@ -860,29 +836,11 @@ scala> Färg.values(0) match { case Färg.Spader => "hej" }
   |
   |It would fail on pattern case: Hjärter, Ruter, Klöver
 val res0: String = hej
-\end{REPL}
+\end{REPLsmall}
 \end{Slide}
   
         
   
-
-\begin{Slide}{Fördjupning: Transparent trait}\SlideFontSmall
-Du kan göra din trait \Emph{genomskinlig} vid typhärledning av supertypen för inmixningen med nyckelordet \code{transparent}:
-\begin{Code}
-trait Grönsak(val vikt: Int)
-transparent trait HarSmak(val smak: String)
-
-object Gurka extends Grönsak(42), HarSmak("vattning")
-object Tomat extends Grönsak(43), HarSmak("syrlig")
-\end{Code} 
-\begin{REPLnonum}
-scala> Vector(Gurka, Tomat)
-val res0: Vector[Grönsak] = 
-  Vector(Gurka@560742f7, Tomat@3cc82e23)
-\end{REPLnonum}
-Vilken typ hade visats utan \code{transparent}? \pause \\ \code{Vector[Grönsak & HarSmak]}
-\end{Slide}
-
 
 \begin{Slide}{Öppen klass signalerar uppmuntrad subtypning}\SlideFontSmall
 \begin{itemize}
@@ -934,15 +892,15 @@ Men går det inte lika bra med en trait? \pause Det går ofta \href{https://yout
 
 \noindent Använd en \Alert{abstrakt klass} om...
 \begin{itemize}
-\item ...du vill anropa konstruktor i supertyp.
 \item ...du vill begränsa inmixning. 
 \item ...du vill ärva supertypen från klasser skrivna i Java.
 \item ...du vill minimera tid för omkompilering vid ändringar (spar tid vid stora projekt).
+\item ...du vill vidarebefordra klassparametrar till supertyp.
 \end{itemize}
 \end{multicols}
 \end{Slide}
 
-\begin{Slide}{En trait får ej vidarebefodra parametrar}\SlideFontSmall
+\begin{Slide}{En trait får ej vidarebefordra parametrar}\SlideFontSmall
 En trait får inte skicka vidare parametrar till en supertyp (det skulle bli knepiga problem annars vid inmixning):
 \begin{REPLnonum}
 scala> trait X(x: Int)
